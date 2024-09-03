@@ -4,25 +4,43 @@ using Unity.Transforms;
 
 [BurstCompile]
 public partial struct SpawnerSystem : ISystem {
-    public void OnCreate(ref SystemState state) { }
+    public void OnCreate(ref SystemState state) {
+        state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
+    }
     public void OnDestroy(ref SystemState state) { }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state) {
-        foreach (var spawner in SystemAPI.Query<RefRW<Spawner>>()) {
-            ProcessSpawner(ref state, spawner);
-        }
+        var ecb = GetEntityCommandBuffer(ref state);
+
+        new ProcessSpawnerJob {
+            Ecb = ecb,
+            ElapsedTime = SystemAPI.Time.ElapsedTime,
+        }.ScheduleParallel();
     }
 
-    private void ProcessSpawner(ref SystemState state, RefRW<Spawner> spawner) {
-        if (spawner.ValueRO.NextSpawnTime < SystemAPI.Time.ElapsedTime) {
-            Entity newEntity = state.EntityManager.Instantiate(spawner.ValueRO.Prefab);
-            state.EntityManager.SetComponentData(
-                newEntity, 
-                LocalTransform.FromPosition(spawner.ValueRO.SpawnPosition)
-            );
+    private EntityCommandBuffer.ParallelWriter GetEntityCommandBuffer(ref SystemState state) {
+        var ecbSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        return ecb.AsParallelWriter();
+    }
+}
 
-            spawner.ValueRW.NextSpawnTime = (float)SystemAPI.Time.ElapsedTime + spawner.ValueRO.SpawnRate;
-        }
+public partial struct ProcessSpawnerJob : IJobEntity {
+    public EntityCommandBuffer.ParallelWriter Ecb;
+    public double ElapsedTime;
+
+    private void Execute([ChunkIndexInQuery] int chunkIndex, ref Spawner spawner) {
+        if (!(spawner.NextSpawnTime < ElapsedTime)) 
+            return;
+
+        var newEntity = Ecb.Instantiate(chunkIndex, spawner.Prefab);
+        Ecb.SetComponent(
+            chunkIndex,
+            newEntity, 
+            LocalTransform.FromPosition(spawner.SpawnPosition)
+        );
+
+        spawner.NextSpawnTime = (float)ElapsedTime + spawner.SpawnRate;
     }
 }

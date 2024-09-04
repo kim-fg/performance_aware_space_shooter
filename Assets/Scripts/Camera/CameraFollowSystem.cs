@@ -14,6 +14,7 @@ public partial class CameraFollowSystem : SystemBase {
         
         _player = SystemAPI.GetSingletonEntity<PlayerTag>();
         _cameraTransform = Camera.main?.transform.root; // YES this is ugly, but does it really matter?
+        // if it does matter: https://docs.unity3d.com/Packages/com.unity.entities@0.17/api/Unity.Entities.EntityManager.AddComponentObject.html
     }
 
     [BurstCompile]

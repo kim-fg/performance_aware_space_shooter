@@ -7,11 +7,7 @@ public partial struct BlasterFireSystem : ISystem {
     
     [BurstCompile]
     public void OnUpdate(ref SystemState state) {
-        var deltaTime = SystemAPI.Time.DeltaTime;
-        
         foreach (var (blaster, transform, owner) in SystemAPI.Query<RefRW<Blaster>, RefRO<LocalToWorld>>().WithAll<FireProjectileTag>().WithEntityAccess()) {
-            blaster.ValueRW.TimeSinceLastShot += deltaTime;
-            
             if (blaster.ValueRW.TimeSinceLastShot < blaster.ValueRW.FireDelay) {
                 continue;
             }

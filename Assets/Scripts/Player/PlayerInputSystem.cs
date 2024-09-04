@@ -18,14 +18,14 @@ public partial class PlayerInputSystem : SystemBase {
 
     [BurstCompile]
     protected override void OnUpdate() {
-        var thrustInput = _inputActions.Player.Thrust.ReadValue<float>();
+        var thrustInput = _inputActions.Player.Thrust.IsPressed();
         var turnInput = _inputActions.Player.Turn.ReadValue<float>();
         var fireInput = _inputActions.Player.Fire.IsPressed();
 
         new UpdatePlayerInputJob {
-            ThrustInput = thrustInput,
-            TurnInput = turnInput,
-            FireInput = fireInput,
+            Thrust = thrustInput,
+            Turn = turnInput,
+            Fire = fireInput,
         }.Schedule();
     }
 
@@ -36,16 +36,16 @@ public partial class PlayerInputSystem : SystemBase {
 
 [BurstCompile]
 public partial struct UpdatePlayerInputJob : IJobEntity {
-    public float ThrustInput;
-    public float TurnInput;
-    public bool FireInput;
+    public bool Thrust;
+    public float Turn;
+    public bool Fire;
 
     [BurstCompile]
     private void Execute(ref PlayerInput playerInput) {
         playerInput = new PlayerInput {
-            ThrustInput = ThrustInput,
-            TurnInput = TurnInput,
-            FireInput = FireInput,
+            Thrust = Thrust,
+            TurnInput = Turn,
+            FireInput = Fire,
         };
     }
 }

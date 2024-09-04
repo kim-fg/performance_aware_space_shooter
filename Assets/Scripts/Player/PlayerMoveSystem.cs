@@ -24,11 +24,9 @@ public partial struct PlayerMoveJob : IJobEntity {
 
     [BurstCompile]
     private void Execute(PlayerMovement playerMovement, LocalTransform localTransform, ref PhysicsVelocity physicsVelocity, in PlayerInput playerInput) {
-        var inputDelta = playerInput.ThrustInput * playerMovement.ThrustPower * DeltaTime;
-        
         // apply thrust
-        if (Mathf.Abs(inputDelta) > float.Epsilon) {
-            physicsVelocity.Linear += localTransform.Forward() * inputDelta;
+        if (playerInput.Thrust) {
+            physicsVelocity.Linear += localTransform.Forward() * playerMovement.ThrustPower * DeltaTime;
             return;
         }
         

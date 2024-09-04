@@ -36,7 +36,7 @@ public struct PlayerMovement : IComponentData {
 }
 
 public struct PlayerInput : IComponentData {
-    public float ThrustInput;
+    public bool Thrust;
     public float TurnInput;
     public bool FireInput;
 }

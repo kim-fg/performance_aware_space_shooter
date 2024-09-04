@@ -20,20 +20,25 @@ public class BlasterBaker : Baker<BlasterAuthoring> {
             AddComponent<PlayerInput>(entity);
         }
         
-        AddComponent(entity, new Blaster {
-            ProjectilePrefab = GetEntity(authoring.ProjectilePrefab, TransformUsageFlags.Dynamic),
-            FireDelay = authoring.FireDelay,
-            // Initialize as equal to firedelay so player doesnt need to wait
-            TimeSinceLastShot = authoring.FireDelay
-        });
+        AddComponent(entity, new Blaster(
+            GetEntity(authoring.ProjectilePrefab, TransformUsageFlags.Dynamic),
+            authoring.FireDelay
+        ));
         AddComponent<FireProjectileTag>(entity);
     }
 }
 
 public struct Blaster : IComponentData {
-    public Entity ProjectilePrefab;
-    public float FireDelay;
+    public readonly Entity ProjectilePrefab;
+    public readonly float FireDelay;
     public float TimeSinceLastShot;
+
+    public Blaster(Entity projectilePrefab, float fireDelay) {
+        ProjectilePrefab = projectilePrefab;
+        FireDelay = fireDelay;
+        // Initialize as equal to firedelay so player doesnt need to wait
+        TimeSinceLastShot = fireDelay;
+    }
 }
 
 public struct FireProjectileTag : IComponentData, IEnableableComponent { }

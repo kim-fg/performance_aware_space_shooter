@@ -1,37 +1,26 @@
 using Unity.Burst;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 [UpdateBefore(typeof(TransformSystemGroup)), UpdateAfter(typeof(PlayerMoveSystem))]
 [BurstCompile]
 public partial class CameraFollowSystem : SystemBase {
     private Entity _player;
+    private Transform _cameraTransform;
 
     protected override void OnStartRunning() {
         RequireForUpdate<PlayerTag>();
         
         _player = SystemAPI.GetSingletonEntity<PlayerTag>();
+        _cameraTransform = Camera.main?.transform.root; // YES this is ugly, but does it really matter?
     }
 
     [BurstCompile]
     protected override void OnUpdate() {
         var playerTransform = SystemAPI.GetComponent<LocalTransform>(_player);
         var playerPosition = playerTransform.Position;
-
-         new CameraFollowJob() {
-            TargetPosition = playerPosition,
-         }.Schedule();
-    }
-}
-
-[BurstCompile]
-public partial struct CameraFollowJob : IJobEntity {
-    public float3 TargetPosition;
-    
-    [BurstCompile]
-    private void Execute(CameraFollow cameraFollow, ref LocalTransform localTransform) {
-        TargetPosition.y = 0.0f;
-        localTransform.Position = TargetPosition;
+        
+        _cameraTransform.position = playerPosition;
     }
 }

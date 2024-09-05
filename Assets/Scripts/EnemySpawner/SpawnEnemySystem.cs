@@ -1,22 +1,23 @@
 using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
 [BurstCompile]
-public partial class SpawnEnemySystem : SystemBase {
+public partial struct SpawnEnemySystem : ISystem {
     private Entity _player;
     private Random _random;
-    
-    protected override void OnStartRunning() {
-       _player = SystemAPI.GetSingletonEntity<PlayerTag>();
-       _random = new Random(1337);
+
+    public void OnCreate(ref SystemState state) {
+        state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<PlayerTag>();
+        _player = SystemAPI.GetSingletonEntity<PlayerTag>();
+        _random = new Random(1337);
     }
 
     [BurstCompile]
-    protected override void OnUpdate() {
-        var ecb = new EntityCommandBuffer(Allocator.TempJob);
+    public void OnUpdate(ref SystemState state) {
+        var ecb = GetEntityCommandBuffer(ref state);
         var playerTransform = SystemAPI.GetComponent<LocalToWorld>(_player);
         var playerPosition = playerTransform.Position;
         
@@ -25,7 +26,13 @@ public partial class SpawnEnemySystem : SystemBase {
             DeltaTime = SystemAPI.Time.DeltaTime,
             PlayerPosition = playerPosition,
             Ecb = ecb,
-        }.Schedule();
+        }.ScheduleParallel();
+    }
+    
+    private EntityCommandBuffer.ParallelWriter GetEntityCommandBuffer(ref SystemState state) {
+        var ecbSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        return ecb.AsParallelWriter();
     }
 }
 
@@ -34,24 +41,28 @@ public partial struct SpawnEnemyJob : IJobEntity {
     public Random Random;
     public float DeltaTime;
     public float3 PlayerPosition;
-    public EntityCommandBuffer Ecb;
+    public EntityCommandBuffer.ParallelWriter Ecb;
 
     [BurstCompile]
-    private void Execute(ref EnemySpawner enemySpawner) {
+    private void Execute([ChunkIndexInQuery] int chunkIndex, ref EnemySpawner enemySpawner) {
         enemySpawner.TimeSinceLastSpawn += DeltaTime;
         
         if (enemySpawner.TimeSinceLastSpawn < enemySpawner.SpawnDelay) {
             return;
         }
 
-        var entity = Ecb.Instantiate(enemySpawner.Prefab);
+        var entity = Ecb.Instantiate(chunkIndex, enemySpawner.Prefab);
 
         var randomOffset = math.normalize(Random.NextFloat3()) ;
         randomOffset.y = 0.0f;
         randomOffset *= enemySpawner.OffsetRadius;
         var spawnPosition = PlayerPosition + randomOffset;
         
-        Ecb.SetComponent(entity, LocalTransform.FromPosition(spawnPosition));
+        Ecb.SetComponent(
+            chunkIndex,
+            entity, 
+            LocalTransform.FromPosition(spawnPosition)
+        );
         
         enemySpawner.TimeSinceLastSpawn = 0.0f;
     }

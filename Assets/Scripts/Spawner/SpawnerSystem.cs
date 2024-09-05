@@ -31,7 +31,7 @@ public partial struct ProcessSpawnerJob : IJobEntity {
     public double ElapsedTime;
 
     private void Execute([ChunkIndexInQuery] int chunkIndex, ref Spawner spawner) {
-        if (!(spawner.NextSpawnTime < ElapsedTime)) 
+        if (spawner.NextSpawnTime > ElapsedTime) 
             return;
 
         var newEntity = Ecb.Instantiate(chunkIndex, spawner.Prefab);

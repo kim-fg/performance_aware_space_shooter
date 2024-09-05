@@ -5,7 +5,6 @@ using Unity.Physics;
 using UnityEngine;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
-//[UpdateBefore(typeof(PhysicsSimulationGroup))]
 public partial struct ProjectileCollisionSystem : ISystem {
     public void OnCreate(ref SystemState state) {
         state.RequireForUpdate<SimulationSingleton>();

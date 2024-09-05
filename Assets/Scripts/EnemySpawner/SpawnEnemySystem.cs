@@ -2,27 +2,23 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 [BurstCompile]
 public partial struct SpawnEnemySystem : ISystem {
-    private Entity _player;
-    private Random _random;
-
     public void OnCreate(ref SystemState state) {
         state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PlayerTag>();
-        _player = SystemAPI.GetSingletonEntity<PlayerTag>();
-        _random = new Random(1337);
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state) {
         var ecb = GetEntityCommandBuffer(ref state);
-        var playerTransform = SystemAPI.GetComponent<LocalToWorld>(_player);
+        var player = SystemAPI.GetSingletonEntity<PlayerTag>();;
+        var playerTransform = SystemAPI.GetComponent<LocalToWorld>(player);
         var playerPosition = playerTransform.Position;
         
         new SpawnEnemyJob {
-            Random = _random,
             DeltaTime = SystemAPI.Time.DeltaTime,
             PlayerPosition = playerPosition,
             Ecb = ecb,
@@ -38,7 +34,6 @@ public partial struct SpawnEnemySystem : ISystem {
 
 [BurstCompile]
 public partial struct SpawnEnemyJob : IJobEntity {
-    public Random Random;
     public float DeltaTime;
     public float3 PlayerPosition;
     public EntityCommandBuffer.ParallelWriter Ecb;
@@ -51,17 +46,30 @@ public partial struct SpawnEnemyJob : IJobEntity {
             return;
         }
 
-        var entity = Ecb.Instantiate(chunkIndex, enemySpawner.Prefab);
-
-        var randomOffset = math.normalize(Random.NextFloat3()) ;
-        randomOffset.y = 0.0f;
+        var randomOffset = enemySpawner.Random.NextFloat3Direction();
         randomOffset *= enemySpawner.OffsetRadius;
+        randomOffset.y = 0.0f;
         var spawnPosition = PlayerPosition + randomOffset;
+
+        var directionToPlayer = math.normalize(PlayerPosition - spawnPosition);
+        var spawnRotation = quaternion.LookRotation(
+            directionToPlayer, 
+            new float3(0.0f, 1.0f, 0.0f) //float3.Y doesnt exist >:(
+        );
         
+        var entity = Ecb.Instantiate(chunkIndex, enemySpawner.Prefab);
         Ecb.SetComponent(
             chunkIndex,
             entity, 
-            LocalTransform.FromPosition(spawnPosition)
+            LocalTransform.FromPositionRotation(
+                spawnPosition, 
+                spawnRotation
+            )
+        );
+        Ecb.AddComponent(
+            chunkIndex,
+            entity,
+            new LifeTime(10.0f)
         );
         
         enemySpawner.TimeSinceLastSpawn = 0.0f;

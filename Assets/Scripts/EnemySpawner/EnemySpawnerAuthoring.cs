@@ -1,5 +1,6 @@
 using Unity.Entities;
 using UnityEngine;
+using Random = Unity.Mathematics.Random;
 
 public class EnemySpawnerAuthoring : MonoBehaviour {
     [SerializeField] private GameObject prefab;
@@ -29,11 +30,13 @@ public struct EnemySpawner : IComponentData {
     public readonly float SpawnDelay;
     public readonly float OffsetRadius;
     public float TimeSinceLastSpawn;
+    public Random Random;
 
     public EnemySpawner(Entity prefab, float spawnDelay, float offsetRadius) {
         Prefab = prefab;
         SpawnDelay = spawnDelay;
         OffsetRadius = offsetRadius;
         TimeSinceLastSpawn = 0.0f;
+        Random = new Random(1337);
     }
 }

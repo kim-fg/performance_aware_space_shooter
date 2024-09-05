@@ -2,7 +2,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
-using UnityEngine;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 public partial struct ProjectileCollisionSystem : ISystem {
@@ -27,13 +26,11 @@ public partial struct ProjectileCollisionSystem : ISystem {
 }
 
 [BurstCompile]
-public partial struct ProjectileCollisionJob : ICollisionEventsJob {
+public struct ProjectileCollisionJob : ICollisionEventsJob {
     public EntityCommandBuffer Ecb;
     
     public void Execute(CollisionEvent collisionEvent) {
         Ecb.DestroyEntity(collisionEvent.EntityA);
         Ecb.DestroyEntity(collisionEvent.EntityB);
-        
-        Debug.Log("Destroyed entities");
     }
 }

@@ -1,6 +1,7 @@
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -46,31 +47,41 @@ public partial struct SpawnEnemyJob : IJobEntity {
             return;
         }
 
-        var randomOffset = enemySpawner.Random.NextFloat3Direction();
-        randomOffset *= enemySpawner.OffsetRadius;
-        randomOffset.y = 0.0f;
-        var spawnPosition = PlayerPosition + randomOffset;
+        for (int i = 0; i < enemySpawner.SpawnsPerWave; i++) {
+            var randomOffset = enemySpawner.Random.NextFloat3Direction();
+            randomOffset *= enemySpawner.OffsetRadius;
+            randomOffset.y = 0.0f;
+            var spawnPosition = PlayerPosition + randomOffset;
 
-        var directionToPlayer = math.normalize(PlayerPosition - spawnPosition);
-        var spawnRotation = quaternion.LookRotation(
-            directionToPlayer, 
-            new float3(0.0f, 1.0f, 0.0f) //float3.Y doesnt exist >:(
-        );
+            var directionToPlayer = math.normalize(PlayerPosition - spawnPosition);
+            var spawnRotation = quaternion.LookRotation(
+                directionToPlayer, 
+                new float3(0.0f, 1.0f, 0.0f) //float3.Y doesnt exist >:(
+            );
         
-        var entity = Ecb.Instantiate(chunkIndex, enemySpawner.Prefab);
-        Ecb.SetComponent(
-            chunkIndex,
-            entity, 
-            LocalTransform.FromPositionRotation(
-                spawnPosition, 
-                spawnRotation
-            )
-        );
-        Ecb.AddComponent(
-            chunkIndex,
-            entity,
-            new LifeTime(10.0f)
-        );
+            var entity = Ecb.Instantiate(chunkIndex, enemySpawner.Prefab);
+            Ecb.SetComponent(
+                chunkIndex + i,
+                entity, 
+                LocalTransform.FromPositionRotation(
+                    spawnPosition, 
+                    spawnRotation
+                )
+            );
+            Ecb.SetComponent(
+                chunkIndex + i,
+                entity,
+                new PhysicsVelocity {
+                    Angular = float3.zero,
+                    Linear = directionToPlayer * 3f,
+                }
+            );
+            Ecb.AddComponent(
+                chunkIndex + i,
+                entity,
+                new LifeTime(20.0f)
+            );
+        }
         
         enemySpawner.TimeSinceLastSpawn = 0.0f;
     }

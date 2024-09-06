@@ -452,8 +452,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 7466598605711221652, guid: 91c65b8cf6161de4b82c043590ec216d, type: 3}
-  spawnDelay: 1
-  offsetRadius: 25
+  spawnDelay: 3
+  spawnsPerWave: 5
+  offsetRadius: 50
 --- !u!1001 &1502982420
 PrefabInstance:
   m_ObjectHideFlags: 0
